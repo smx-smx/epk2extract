@@ -1,11 +1,10 @@
-To compile on Ubuntu 12.04LTS:
+To compile on Ubuntu:
 ==============================
 
 apt-get install git build-essential cmake liblzo2-dev libssl-dev libc6-dev-i386
+./build.sh
 
-./cmake
-
-make
+Compiled program can be found at build/src/epk2extract
 
 ## To use:
 Put *.pem and AES.key to epk2extract folder.
