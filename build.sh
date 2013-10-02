@@ -48,7 +48,12 @@ if [ ! "$1" == "clean" ]; then
 			cp src/epk2extract bin/
 		elif [ "$rel" == "cygwin" ]; then
 			cp src/epk2extract.exe bin/
-			for cyglib in "cygz.dll" "cygwin1.dll" "cyglzo2-2.dll" "cyggcc_s-1.dll" "cygcrypto-1.0.0.dll"; do
+			if [ "$HOSTTYPE" == "i686" ]; then #cygwin32
+				sharedlibs=("cygz.dll" "cygwin1.dll" "cyglzo2-2.dll" "cyggcc_s-1.dll" "cygcrypto-1.0.0.dll")
+			elif [ "$HOSTTYPE" == "x86_64" ]; then #cygwin64
+				sharedlibs=("cygz.dll" "cygwin1.dll" "cyglzo2-2.dll" "cygcrypto-1.0.0.dll")
+			fi
+			for cyglib in ${sharedlibs[@]}; do
 				$white; echo "Installing $cyglib"; $normal
 				islibok=$(which "$cyglib" &>/dev/null; echo $?)
 				if [ $islibok == 0 ]; then
