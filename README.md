@@ -1,27 +1,34 @@
-To compile on Linux:
-==============================
+To compile on Linux (Ubuntu or Limux Mint):
+===========================================
 
-# 1 - Installing build dependencies
-If you are running Ubuntu or Linux Mint, you can run
+# 1 - Install build dependencies:
 sudo apt-get install git build-essential cmake liblzo2-dev libssl-dev libc6-dev-i386
 
-# 2 - Running build
-./build.sh
+# 2 - Get sources
+git clone https://github.com/lprot/epk2extract
 
-Compiled program can be found at build_linux/bin/
+# 3 - Run building
+cd epk2extract ; ./build.sh
+
+After compilation epk2extract will be in folder ./build_linux/ 
 
 
 To compile on cygwin:
 ==============================
 
-# 1 - Installing build dependencies
-From cygwin setup, install:
-gcc git cmake liblzo2-devel openssl-devel
+# 1 - Install cygwin and during setup select following packages:
+Devel-> gcc, git, cmake, make
+Libs-> liblzo2-devel, zlib-devel
+Net-> openssl-devel
+Utils-> ncurses
 
-# 2 - Running build
-./build.sh
+# 2 - Run Cygwin Terminal and get sources
+git clone https://github.com/lprot/epk2extract
 
-Compiled program can be found at build_cygwin/bin/
+# 3 - Run building
+cd epk2extract ; ./build.sh
+
+After compilation epk2extract and cygwin libs will be in ./build_cygwin/
 The build script automatically copies cygwin shared libraries to the bin folder, so you can use epk2extract
 without having to install cygwin
 
