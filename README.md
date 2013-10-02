@@ -1,8 +1,8 @@
-To compile on Linux (Ubuntu or Limux Mint):
+To compile on Linux (Ubuntu or Linux Mint):
 ===========================================
 
 # 1 - Install build dependencies:
-sudo apt-get install git build-essential cmake liblzo2-dev libssl-dev libc6-dev-i386
+sudo apt-get install git build-essential cmake liblzo2-dev libssl-dev libc6-dev
 
 # 2 - Get sources
 git clone https://github.com/lprot/epk2extract
