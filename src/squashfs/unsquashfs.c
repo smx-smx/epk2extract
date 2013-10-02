@@ -30,6 +30,11 @@
 #include "compressor.h"
 #include "xattr.h"
 
+#ifdef __CYGWIN__
+#include <sys/termios.h>
+#define FNM_EXTMATCH  (1 << 5)
+#endif
+
 #include <sys/sysinfo.h>
 #include <sys/types.h>
 
