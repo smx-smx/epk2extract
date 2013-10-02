@@ -11,35 +11,66 @@ lyellow='printf \033[01;33m'
 white='printf \033[01;37m'
 
 cwd=$(pwd)
-if [ ! -e $0 ]; then
-	$lyellow; echo "Please run this script from the source directory"; $normal
+sourcedir=$(cd `dirname $0`; pwd -P)
+
+if [ "$OSTYPE" == "cygwin" ]; then rel=cygwin
+elif [ "$OSTYPE" == "linux-gnu" ]; then rel=linux
+else
+	$lred; "Unknown Build Host"; $normal
 	exit 1
+fi
+
+if [ ! -e ./`basename $0` ]; then
+	cd $sourcedir
 fi
 if [ ! "$1" == "clean" ]; then
 	$lyellow; echo "Building epk2extract"; $normal
-	if [ -f "build" ]; then
-		$lred; echo "A file named \"build\" exists. Please move it"; $normal
+	if [ -f "build_$rel" ]; then
+		$lred; echo "A file named \"build_$rel\" exists. Please move it"; $normal
 		exit 1
-	elif [ ! -e "build" ]; then
-		mkdir build
+	elif [ ! -e "build_$rel" ]; then
+		mkdir build_$rel
 	fi
 
-	cd build
+	cd build_$rel
 	cmake ..
 	make
 	if [ ! $? == 0 ]; then
 		$lred; echo "Build Failed!"; $normal
 		exit 1
 	else
+		if [ ! -e "bin" ]; then
+			mkdir bin
+		else
+			rm bin/*
+		fi
+		if [ "$rel" == "linux" ]; then
+			cp src/epk2extract bin/
+		elif [ "$rel" == "cygwin" ]; then
+			cp src/epk2extract.exe bin/
+			for cyglib in "cygz.dll" "cygwin1.dll" "cyglzo2-2.dll" "cyggcc_s-1.dll" "cygcrypto-1.0.0.dll"; do
+				$white; echo "Installing $cyglib"; $normal
+				islibok=$(which "$cyglib" &>/dev/null; echo $?)
+				if [ $islibok == 0 ]; then
+					cp `which $cyglib` bin/
+				else
+					$lred
+					echo "Something wrong! $cyglib not found."
+					echo "Verify your cygwin installation and try again."
+					$normal
+					exit 1
+				fi
+			done
+		fi
 		$lgreen; echo "Build Completed!"; $normal
 		exit 0
 	fi
 else
 	$lyellow; echo "Removing epk2extract build directory"; $normal
-	if [ -d "build" ]; then
-		yes | rm -r build
+	if [ -d "build_$rel" ]; then
+		yes | rm -r build_$rel
 	fi
-	if [ ! -d "build" ]; then
+	if [ ! -d "build_$rel" ]; then
 		$lgreen; echo "Done!"; $normal
 		exit 0
 	else
