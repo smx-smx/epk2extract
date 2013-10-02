@@ -20,8 +20,6 @@ if [ ! "$1" == "clean" ]; then
 	if [ -f "build" ]; then
 		$lred; echo "A file named \"build\" exists. Please move it"; $normal
 		exit 1
-	elif [ -d "build" ]; then
-		yes | rm -r build/*
 	elif [ ! -e "build" ]; then
 		mkdir build
 	fi
