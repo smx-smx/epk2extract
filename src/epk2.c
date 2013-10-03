@@ -194,7 +194,7 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 
 	printf("\nVerifying digital signature of EPK2 firmware header...\n");
 	int verified = 0;
-	DIR* dirFile = opendir(".");
+	DIR* dirFile = opendir(config_opts->config_dir);
 	if (dirFile) {
 		struct dirent* hFile;
 		while ((hFile = readdir(dirFile)) != NULL) {
@@ -231,7 +231,11 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 	if (memcmp(fwInfo->EPK2magic, EPK2_MAGIC, 4)) {
 		printf("EPK2 header is encrypted. Trying to decrypt...\n");
 		int uncrypted = 0;
-		FILE *fp = fopen("AES.key", "r");
+		char key_file_name[1024] = "";
+		strcat(key_file_name, config_opts->config_dir);
+		strcat(key_file_name, "/");
+		strcat(key_file_name, "AES.key");
+		FILE *fp = fopen(key_file_name, "r");
 		if (fp == NULL) {
 			printf("\nError: Cannot open AES.key file.\n");
 			if (munmap(buffer, fileLength) == -1) printf("Error un-mmapping the file");
