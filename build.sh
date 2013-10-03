@@ -33,15 +33,12 @@ if [ ! "$1" == "clean" ]; then
 	fi
 
 	cd build_$rel
-<<<<<<< HEAD
 	if [ "$rel" == "cygwin" ]; then
 		cmake .. -DCMAKE_LEGACY_CYGWIN_WIN32=0
 	else
 		cmake ..
 	fi
-=======
 	cmake ..
->>>>>>> upstream/master
 	make
 	if [ ! $? == 0 ]; then
 		$lred; echo "Build Failed!"; $normal
