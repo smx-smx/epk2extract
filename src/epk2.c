@@ -91,8 +91,12 @@ void printPAKinfo(struct pak2_t* pak) {
 	}
 }
 
-void SelectAESkey(struct pak2_t* pak) {
-	FILE *fp = fopen("AES.key", "r");
+void SelectAESkey(struct pak2_t* pak, struct config_opts_t *config_opts) {
+	char key_file_name[1024] = "";
+	strcat(key_file_name, config_opts->config_dir);
+	strcat(key_file_name, "/");
+	strcat(key_file_name, "AES.key");
+	FILE *fp = fopen(key_file_name, "r");
 	if (fp == NULL) {
 		printf("\nError: Cannot open AES.key file.\n");
 		exit(1);
@@ -393,7 +397,7 @@ void extractEPK2file(const char *epk_file, struct config_opts_t *config_opts) {
 	constructPath(targetFolder, config_opts->dest_dir, fwVersion, NULL);
 	createFolder(targetFolder);
 
-	SelectAESkey(pakArray[0]);
+	SelectAESkey(pakArray[0], config_opts);
 
 	int index;
 	for (index = 0; index < last_index + 1; index++) {
