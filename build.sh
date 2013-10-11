@@ -69,10 +69,11 @@ else
 	find . -type f -name "Makefile" -delete
 	find . -type f -name "cmake_install.cmake" -delete
 	find . -type f -name "*.a" -delete
+	find . -type f -name "*.dll" -delete
 	find . -type f -name "epk2extract" -delete
 	find . -type f -name "epk2extract.exe" -delete
 	find . -depth -name "CMakeFiles" -exec rm -rf '{}' \;
-	if [ -d "$rel" ]; then rm -r $rel; fi
+	if [ -d "$rel" ] && [ $(ls "$rel" | wc -l) == 0 ]; then rm -r "$rel"; fi
 	$lgreen; echo "Done!"; $normal
 	exit 0
 fi
