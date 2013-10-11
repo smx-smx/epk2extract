@@ -13,8 +13,8 @@ white='printf \033[01;37m'
 cwd=$(pwd)
 sourcedir=$(cd `dirname $0`; pwd -P)
 
-if [ "$OSTYPE" == "cygwin" ]; then rel=cygwin
-elif [ "$OSTYPE" == "linux-gnu" ]; then rel=linux
+if [ "$OSTYPE" == "cygwin" ]; then rel=build_cygwin
+elif [ "$OSTYPE" == "linux-gnu" ]; then rel=build_linux
 else
 	$lred; "Can't build - unknown OS type. Aborting..."; $normal
 	exit 1
