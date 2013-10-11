@@ -39,7 +39,7 @@ void SWU_CryptoInit_AES(const unsigned char* AES_KEY) {
 	AES_set_encrypt_key(AES_KEY, size, &_geKeyImage);
 }
 
-int API_SWU_VerifyImage(unsigned char* image, unsigned int imageSize) { 
+int API_SWU_VerifyImage(unsigned char* image, unsigned int imageSize) {
 	unsigned char *md_value;
 	unsigned int md_len = 0;
 	md_value = malloc(0x40);

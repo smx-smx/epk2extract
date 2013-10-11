@@ -55,3 +55,6 @@ In that case just run epk2extract again and it will do the job right.
 
 epk2extract might use a large amount of RAM while running and thus slow down your computer.
 If the program or your computer seem frozen or not responding please be patient and give it some time to finish.
+
+Converted STR Files suffer some sort of corruption and/or video artifacts.
+It is recommended to run FFMPEG to remux the video, or convert it to another format to remove the corrupted data.

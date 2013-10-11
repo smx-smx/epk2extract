@@ -158,7 +158,7 @@ void unnfsb(char* filename, char* extractedFile) {
 int isSTRfile(const char *filename) {
 	FILE *file = fopen(filename, "r");
 	if (file == NULL) {
-		printf("Can't open file %s", filename);
+		printf("Can't open file %s\n", filename);
 		exit(1);
 	}
 	size_t headerSize = 0xC0*4;
@@ -172,7 +172,13 @@ int isSTRfile(const char *filename) {
 }
 
 #define TS_FRAME_SIZE 192
+//keys definitions
 unsigned char drm_key[0x10];
+unsigned char wKey[24];
+unsigned char uwKey[16];
+static const unsigned char iv[] = {
+	0xB7,0xB7,0xB7,0xB7,0xB7,0xB7,0xB7,0xB7,
+};
 AES_KEY UnwrappedKey;
 
 //Sync byte				8		0x47
@@ -214,13 +220,21 @@ unsigned char process_section (unsigned char *data , unsigned char *outdata, con
 }
 
 void convertSTR2TS(char* filename, char* outfilename) {
-	FILE *file = fopen("dvr", "r");
-	if (file == NULL) {
-		printf("Can't open file %s", filename);
-		exit(1);
+char *key_file = "drm.aes";
+	FILE *kfile = fopen(key_file, "rb");
+	if (kfile == NULL) {
+		/*FILE *kfile = fopen(keyfile, "rb");
+		if (kfile == NULL) {*/
+			printf("Can't open key file %s\n", key_file);
+			exit(1);
+		}
+	//}
+
+	FILE *infile = fopen(filename, "r");
+	if (infile == NULL) {
+		printf("Can't open input file %s\n", filename);
 	}
-	unsigned char wKey[24];
-	int read = fread(&wKey, 1, 24, file);
+	int read = fread(&wKey, 1, 24, kfile);
 	uint64_t i;
 	printf("Wrapped key: ");
 	for (i = 0; i < sizeof(wKey); i++) printf("%02X", wKey[i]);
@@ -229,17 +243,13 @@ void convertSTR2TS(char* filename, char* outfilename) {
 		drm_key[i]=i;
 		printf("%02X", drm_key[i]);
 	}
-	static const unsigned char iv[] = {
-		0xB7,0xB7,0xB7,0xB7,0xB7,0xB7,0xB7,0xB7,
-	};
 	AES_KEY AESkey;
 	AES_set_decrypt_key(&drm_key[0], 128, &AESkey);
-	unsigned char uwKey[16];
 	AES_unwrap_key(&AESkey, iv, &drm_key[0], &wKey[0], 24);
 	printf("\nUnwrapped key: ");
 	for (i = 0; i < sizeof(drm_key); i++) printf("%02X", drm_key[i]);
 	printf("\n");
-	fclose(file);
+	fclose(kfile);
 	
 	AES_set_decrypt_key(&drm_key[0], 128, &UnwrappedKey);
 	

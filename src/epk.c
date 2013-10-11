@@ -76,7 +76,7 @@ void processExtractedFile(char *filename, char *folderExtractTo, const char *PAK
 						printf("Unnfsb %s to %s\n", filename, extractedFile);
 						unnfsb(filename, extractedFile);
 						extracted = 1;
-					} 
+					}
 				}
 			}
 		}

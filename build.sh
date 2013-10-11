@@ -14,7 +14,7 @@ cwd=$(pwd)
 sourcedir=$(cd `dirname $0`; pwd -P)
 
 if [ "$OSTYPE" == "cygwin" ]; then rel=build_cygwin
-elif [ "$OSTYPE" == "linux-gnu" ]; then rel=build_linux
+elif [ "$OSTYPE" == "linux-gnu" ] || [ "$OSTYPE" == "linux-gnueabi" ]; then rel=build_linux
 else
 	$lred; "Can't build - unknown OS type. Aborting..."; $normal
 	exit 1
@@ -72,6 +72,7 @@ else
 	find . -type f -name "epk2extract" -delete
 	find . -type f -name "epk2extract.exe" -delete
 	find . -depth -name "CMakeFiles" -exec rm -rf '{}' \;
+	rm -r $rel
 	$lgreen; echo "Done!"; $normal
 	exit 0
 fi
