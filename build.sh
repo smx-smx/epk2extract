@@ -72,7 +72,7 @@ else
 	find . -type f -name "epk2extract" -delete
 	find . -type f -name "epk2extract.exe" -delete
 	find . -depth -name "CMakeFiles" -exec rm -rf '{}' \;
-	rm -r $rel
+	if [ -d "$rel" ]; then rm -r $rel; fi
 	$lgreen; echo "Done!"; $normal
 	exit 0
 fi
