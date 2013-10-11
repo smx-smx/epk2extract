@@ -931,10 +931,10 @@ int create_inode(char *pathname, struct inode *i)
 	 	case SQUASHFS_CHRDEV_TYPE:
  		case SQUASHFS_LBLKDEV_TYPE:
 	 	case SQUASHFS_LCHRDEV_TYPE: {
-		#ifdef __CYGWIN__
+#ifdef __CYGWIN__
 			FILE *fp = fopen(pathname, "ab+");
 			break;
-		#else
+#else
 			int chrdev = i->type == SQUASHFS_CHRDEV_TYPE;
 			TRACE("create_inode: dev, rdev 0x%llx\n", i->data);
 
@@ -960,7 +960,7 @@ int create_inode(char *pathname, struct inode *i)
 					"superuser!\n", chrdev ? "character" :
 					"block", pathname);
 			break;
-		#endif
+#endif
 		}
 		case SQUASHFS_FIFO_TYPE:
 		case SQUASHFS_LFIFO_TYPE:
