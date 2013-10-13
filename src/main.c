@@ -38,7 +38,7 @@ int is_lz4(const char *lz4file) {
 	int read = fread(buffer, 1, headerSize, file);
 	if (read != headerSize) return 0;
 	fclose(file);
-	int result = !memcmp(&buffer[0], "LZ4P", 4);
+	int result = !memcmp(&buffer[0], "LZ4P", 4); 
 	free(buffer);
 	return result;
 }
@@ -49,7 +49,6 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 
 	char dest_file[1024] = "";
 	char lz4pack[1024] = "";
-	char key_file;
 
 	if (check_lzo_header(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".lzounpack");
@@ -68,7 +67,7 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		constructPath(dest_file, dest_dir, file_name, ".unlz4");
 		printf("UnLZ4 file to: %s\n", dest_file);
 		decode_file(file, dest_file);
-		return EXIT_SUCCESS;
+		return EXIT_SUCCESS;			
 	} else if (is_squashfs(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".unsquashfs");
 		printf("Unsquashfs file to: %s\n", dest_file);
@@ -81,7 +80,7 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		rmrf(dest_file);
 		uncramfs(dest_file, file);
 		return EXIT_SUCCESS;
-	} else if (isFileEPK2(file)) {
+	} else if (isFileEPK2(file)) { 
 		extractEPK2file(file, config_opts);
 		return EXIT_SUCCESS;
 	} else if (isFileEPK1(file)) {
@@ -95,8 +94,15 @@ int handle_file(const char *file, struct config_opts_t *config_opts) {
 		return EXIT_SUCCESS;
 	} else if(isSTRfile(file)) {
 		constructPath(dest_file, dest_dir, file_name, ".m2ts");
-		printf("Converting %s file to M2TS: %s\n", file, dest_file);
-		convertSTR2TS(file, dest_file);
+		setKey();
+		printf("\nConverting %s file to M2TS: %s\n", file, dest_file);
+		convertSTR2TS(file, dest_file, 0);
+		return EXIT_SUCCESS;
+	} else if(!memcmp(&file[strlen(file)-3], "PIF", 3)) {
+		constructPath(dest_file, dest_dir, file_name, ".m2ts");
+		setKey();
+		printf("\nProcessing PIF file: %s\n", file);
+		processPIF(file, dest_file);
 		return EXIT_SUCCESS;
 	} else if(symfile_load(file) == 0) {
 		constructPath(dest_file, dest_dir, file_name, ".idc");
@@ -141,7 +147,7 @@ int main(int argc, char *argv[]) {
 			exit(1);
 		}
 		}
-	}	
+	}
 
 	#ifdef __CYGWIN__
 		char posix[PATH_MAX];

@@ -121,28 +121,28 @@ void unnfsb(char* filename, char* extractedFile) {
 	struct stat statbuf;
 	int headerSize = 0x1000;
 	/* open the input file */
-	if ((fdin = open (filename, O_RDONLY)) < 0) printf("Can't open %s for reading", filename);
+	if ((fdin = open (filename, O_RDONLY)) < 0) printf("Can't open file %s for reading\n", filename);
 
 	/* open/create the output file */
 	if ((fdout = open (extractedFile, O_RDWR | O_CREAT | O_TRUNC, (mode_t)0600)) < 0) 
-		printf("Can't create %s for writing", extractedFile);
+		printf("Can't create file %s for writing\n", extractedFile);
 
 	/* find size of input file */
-	if (fstat (fdin, &statbuf) < 0) printf("fstat error");
+	if (fstat (fdin, &statbuf) < 0) printf("fstat error\n");
 
 	/* mmap the input file */
 	if ((src = mmap (0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0)) == (caddr_t) -1)
-		printf("mmap error for input");
+		printf("mmap error for input\n");
 
 	/* go to the location corresponding to the last byte */
-	if (lseek (fdout, statbuf.st_size - headerSize - 1, SEEK_SET) == -1) printf("lseek error");
+	if (lseek (fdout, statbuf.st_size - headerSize - 1, SEEK_SET) == -1) printf("lseek error\n");
  
 	/* write a dummy byte at the last location */
-	if (write (fdout, "", 1) != 1) printf("write error");
+	if (write (fdout, "", 1) != 1) printf("write error\n");
 
 	/* mmap the output file */
 	if ((dst = mmap (0, statbuf.st_size - headerSize, PROT_READ | PROT_WRITE, MAP_SHARED, fdout, 0)) == (caddr_t) -1)
-		printf("mmap error for output");
+		printf("mmap error for output\n");
 	/* this copies the input file to the output file */
 		memcpy(dst, &src[headerSize], statbuf.st_size - headerSize);
 
@@ -158,7 +158,7 @@ void unnfsb(char* filename, char* extractedFile) {
 int isSTRfile(const char *filename) {
 	FILE *file = fopen(filename, "r");
 	if (file == NULL) {
-		printf("Can't open file %s\n", filename);
+		printf("Can't open file %s", filename);
 		exit(1);
 	}
 	size_t headerSize = 0xC0*4;
@@ -171,145 +171,144 @@ int isSTRfile(const char *filename) {
 	return result;
 }
 
-#define TS_FRAME_SIZE 192
-//keys definitions
-unsigned char drm_key[0x10];
-unsigned char wKey[24];
-unsigned char uwKey[16];
-static const unsigned char iv[] = {
-	0xB7,0xB7,0xB7,0xB7,0xB7,0xB7,0xB7,0xB7,
-};
-AES_KEY UnwrappedKey;
+#define TS_PACKET_SIZE 192
+AES_KEY AESkey;
 
-//Sync byte				8		0x47
-//Transport Error Indicator (TEI)	1		Set by demodulator if can't correct errors in the stream, to tell the demultiplexer that the packet has an uncorrectable error [11]
-//Payload Unit Start Indicator		1		1 means start of PES data or PSI otherwise zero only.
-//Transport Priority			1		1 means higher priority than other packets with the same PID.
-//PID					13		Packet ID
-//Scrambling control			2		'00' = Not scrambled.   The following per DVB spec:[12]   
-//							'01' = Reserved for future use,   
-//							'10' = Scrambled with even key,   
-//							'11' = Scrambled with odd key
-//Adaptation field exist		2		01 = no adaptation fields, payload only
-//							10 = adaptation field only
-//							11 = adaptation field and payload
-//Continuity counter			4		Incremented only when a payload is present (i.e., adaptation field exist is 01 or 11)[13]
-//Note: the total number of bits above is 32 and is called the transport stream 4-byte prefix or Transport Stream Header.
-
-unsigned char process_section (unsigned char *data , unsigned char *outdata, const uint64_t dec_count) {
-	unsigned char *inbuf, *outbuf;
-	unsigned int i, rounds;
-	int offset = 4;	
-
-	memcpy(outdata, data, TS_FRAME_SIZE);
-
-	if( (data[3] & 0xC0) != 0xC0 && (data[3] & 0xC0) != 0x80) return 0;
-		
-	if (data[3] & 0x20) offset += (data[4] + 1);	// skip adaption field
-	outdata[3] &= 0x3F;				// remove scrambling bits
-	if (offset > TS_FRAME_SIZE) { //application will crash without this check when file is corrupted
-		printf("\nInvalid data @ %" PRIx64 "\n", dec_count);
-		offset = TS_FRAME_SIZE;
+void setKey() {
+	FILE *keyFile = fopen("dvr", "r");
+	if (keyFile == NULL) {
+		printf("dvr is not found.\n");
+		return;
 	}
-	inbuf = data + offset;
-	outbuf = outdata + offset;
-		
-	rounds = (TS_FRAME_SIZE - offset) / 0x10;
-	for (i = 0; i < rounds; i++) AES_decrypt(inbuf + i* 0x10, outbuf + i * 0x10, &UnwrappedKey); // AES CBC
-	return 1;
-}
+	unsigned char wKey[24];
+	int read = fread(&wKey, 1, 24, keyFile);
+	fclose(keyFile);
 
-void convertSTR2TS(char* filename, char* outfilename) {
-char *key_file = "drm.aes";
-	FILE *kfile = fopen(key_file, "rb");
-	if (kfile == NULL) {
-		/*FILE *kfile = fopen(keyfile, "rb");
-		if (kfile == NULL) {*/
-			printf("Can't open key file %s\n", key_file);
-			exit(1);
-		}
-	//}
-
-	FILE *infile = fopen(filename, "r");
-	if (infile == NULL) {
-		printf("Can't open input file %s\n", filename);
-	}
-	int read = fread(&wKey, 1, 24, kfile);
-	uint64_t i;
 	printf("Wrapped key: ");
+	int i;
 	for (i = 0; i < sizeof(wKey); i++) printf("%02X", wKey[i]);
+	
+	unsigned char drm_key[0x10];
 	printf("\nUnwrap key: ");
 	for (i = 0; i < sizeof(drm_key); i++) {
 		drm_key[i]=i;
 		printf("%02X", drm_key[i]);
 	}
-	AES_KEY AESkey;
+	static const unsigned char iv[] = {
+		0xB7,0xB7,0xB7,0xB7,0xB7,0xB7,0xB7,0xB7,
+	};
 	AES_set_decrypt_key(&drm_key[0], 128, &AESkey);
 	AES_unwrap_key(&AESkey, iv, &drm_key[0], &wKey[0], 24);
 	printf("\nUnwrapped key: ");
 	for (i = 0; i < sizeof(drm_key); i++) printf("%02X", drm_key[i]);
-	printf("\n");
-	fclose(kfile);
-	
-	AES_set_decrypt_key(&drm_key[0], 128, &UnwrappedKey);
-	
-	int sync_find = 0, j;
-	uint64_t filesize = 0, dec_count = 0;
+	AES_set_decrypt_key(&drm_key[0], 128, &AESkey);
+}
 
-	unsigned char buf[1024];
-	unsigned char outdata[1024];
-
-	FILE *inputfp = fopen(filename, "r");
-	if (inputfp  == NULL) {
-		printf("Can't open file %s", filename);
-		exit(1);
-	}
-	
-	FILE *outputfp = fopen(outfilename, "w");
-	if (outputfp  == NULL) {
-		printf("Can't open file %s", outfilename);
-		exit(1);
+void convertSTR2TS(char* inFilename, char* outFilename, int notOverwrite) {
+	FILE *inFile = fopen(inFilename, "rb");
+	if (inFile  == NULL) {
+		printf("Can't open file %s\n", inFilename);
+		return;
 	}
 
-	fseeko(inputfp,0,2);
-	filesize = ftello(inputfp); 
-	rewind(inputfp);
+	fseeko(inFile, 0, SEEK_END);
+	uint64_t filesize = ftello(inFile); 
+	rewind(inFile);
 	
-	fread(buf, 1, 1024, inputfp);
+	FILE *outFile;
+	if (notOverwrite) outFile = fopen(outFilename, "a+b"); 
+	else outFile = fopen(outFilename, "wb");
+	
+	if (outFile  == NULL) {
+		printf("Can't open file %s\n", outFilename);
+		return;
+	}
+	
+	if (notOverwrite) fseeko(outFile, 0, SEEK_END);
 
-	for (i=0; i < (1024 - TS_FRAME_SIZE); i++) {
-		if (buf[i] == 0x47 && buf[i+TS_FRAME_SIZE] == 0x47 && buf[i+TS_FRAME_SIZE+TS_FRAME_SIZE] == 0x47) {
-			sync_find = 1;
-			fseeko(inputfp, i, SEEK_SET); 
+	unsigned char inBuf[TS_PACKET_SIZE*10];
+	unsigned char outBuf[TS_PACKET_SIZE];
+	unsigned int k, rounds;			
+	int syncFound = 0, j;
+	fread(inBuf, 1, sizeof(inBuf), inFile);
+
+	uint64_t i;
+	for (i = 0; i < (sizeof(inBuf) - TS_PACKET_SIZE*2); i++) {
+		if (inBuf[i] == 0x47 && inBuf[i+TS_PACKET_SIZE] == 0x47 && inBuf[i+TS_PACKET_SIZE*2] == 0x47) {
+			fseeko(inFile, i-4, SEEK_SET); 
+			for (i = 0; i < filesize; i += TS_PACKET_SIZE) {
+				fread(inBuf, 1, TS_PACKET_SIZE, inFile);
+				if (inBuf[4] != 0x47) {
+					printf("\nLost sync at offset %" PRIx64 "\n", i);
+					fseeko(inFile, i, SEEK_SET); 
+					syncFound = 0;
+					while (syncFound == 0) {
+						if (fread(inBuf, 1, sizeof(inBuf), inFile) < sizeof(inBuf)) break; //prevent infinite loop at end of file
+						for (j = 0; j < (sizeof(inBuf) - TS_PACKET_SIZE); j++) {
+							if (inBuf[j] == 0x47 && inBuf[j+TS_PACKET_SIZE] == 0x47 && inBuf[j+TS_PACKET_SIZE*2] == 0x47) {
+								syncFound = 1;
+								fseeko(inFile, i+j, SEEK_SET); 
+								break;
+							}
+						}
+						i+=sizeof(inBuf);
+					}
+				} else {
+					memcpy(outBuf, inBuf, TS_PACKET_SIZE);
+					int offset = 8;
+					if ((inBuf[7] & 0xC0) == 0xC0 || (inBuf[7] & 0xC0) == 0x80) { // decrypt only scrambled packets
+						if (inBuf[7] & 0x20) offset += (inBuf[8] + 1);	// skip adaption field
+						outBuf[7] &= 0x3F;	// remove scrambling bits
+						if (offset > TS_PACKET_SIZE) offset = TS_PACKET_SIZE; //application will crash without this check when file is corrupted
+						rounds = (TS_PACKET_SIZE - offset) / 0x10;
+						for (k = 0; k < rounds; k++) AES_decrypt(inBuf + offset + k*0x10, outBuf + offset + k*0x10, &AESkey); // AES CBC
+					};
+					fwrite(outBuf, 1, TS_PACKET_SIZE, outFile);
+				}
+			}
 			break;
 		}
 	}
-	if (sync_find) {
-		for (i = 0; i < filesize; i += TS_FRAME_SIZE) {
-			fread(buf, 1, TS_FRAME_SIZE, inputfp);
-			if (buf[0] != 0x47) {
-				printf("\nLost sync at %" PRIx64 "\n", i);
-				fseeko(inputfp, i, SEEK_SET); 
-				sync_find = 0;
-				while (sync_find == 0) {
-					if (fread(buf, 1, 1024, inputfp) < 1024) break; //prevent infinite loop at end of file
-					for (j=0; j < (1024 - TS_FRAME_SIZE); j++) {
-						if (buf[j] == 0x47 && buf[j+TS_FRAME_SIZE] == 0x47 && buf[j+TS_FRAME_SIZE+TS_FRAME_SIZE] == 0x47) {
-							sync_find = 1;
-							fseeko(inputfp, i+j, SEEK_SET); 
-							break;
-						}
-					}
-					i+=1024;
-				}
-			} else {
-				dec_count += TS_FRAME_SIZE;
-				process_section (buf, outdata, dec_count);
-				fwrite(outdata, 1, TS_FRAME_SIZE, outputfp);
+	fclose(inFile);
+	fclose(outFile);
+}
+
+/* Transport Stream Header (or 4-byte prefix) consists of 32-bit:
+	Sync byte						8		0x47
+	Transport Error Indicator (TEI)	1		Set by demodulator if can't correct errors in the stream, to tell the demultiplexer that the packet
+											has an uncorrectable error [11]
+	Payload Unit Start Indicator	1		1 means start of PES data or PSI otherwise zero only.
+	Transport Priority				1		1 means higher priority than other packets with the same PID.
+	PID								13		Packet ID
+	Scrambling control				2		'00' = Not scrambled. The following per DVB spec:[12]   
+											'01' = Reserved for future use, '10' = Scrambled with even key, '11' = Scrambled with odd key
+	Adaptation field exist			2		'01' = no adaptation fields, payload only, '10' = adaptation field only, '11' = adaptation field and payload
+	Continuity counter				4		Incremented only when a payload is present (i.e., adaptation field exist is 01 or 11)[13]
+*/
+
+void processPIF(const char* filename, char* dest_file) {
+	FILE *file = fopen(filename, "r");
+	if (file == NULL) {
+		printf("Can't open file %s\n", filename);
+		exit(1);
+	}
+	fseek(file, 0, SEEK_END);
+	int filesize = ftell(file);
+	rewind(file);
+
+	int append = 0;
+	unsigned char* buffer = (unsigned char*) malloc(filesize);
+	int read = fread(buffer, 1, filesize, file);
+	if (read == filesize) {
+		int i;
+		for (i = 0; i < (filesize-5); i++) {
+			if (!memcmp(&buffer[i], "/mnt/", 5) && !memcmp(&buffer[i+strlen(&buffer[i])-3], "STR", 3)) {
+				printf("Converting file: %s\n", strrchr(&buffer[i], '/')+1);
+				convertSTR2TS(strrchr(&buffer[i], '/')+1, dest_file, append);
+				append = 1;
 			}
 		}
-		printf("\nWritten %" PRIu64 " bytes to output file.\n", dec_count);
 	}
-	fclose(inputfp);
-	fclose(outputfp);
+	fclose(file);
+	free(buffer);
 }
